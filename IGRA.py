@@ -3,6 +3,31 @@ from pygame import *
 import pyganim
 
 
+class Camera(object):
+    def __init__(self, camera_func, width, height):
+        self.camera_func = camera_func
+        self.state = Rect(0, 0, width, height)
+
+    def apply(self, target):
+        return target.rect.move(self.state.topleft)
+
+    def update(self, target):
+        self.state = self.camera_func(self.state, target.rect)
+
+
+def camera_configure(camera, target_rect):
+    l, t, _, _ = target_rect
+    _, _, w, h = camera
+    l, t = -l + width / 2, -t + height / 2
+
+    l = min(0, l)  # Не движемся дальше левой границы
+    l = max(-(camera.width - width), l)  # Не движемся дальше правой границы
+    t = max(-(camera.height - height), t)  # Не движемся дальше нижней границы
+    t = min(0, t)  # Не движемся дальше верхней границы
+
+    return Rect(l, t, w, h)
+
+
 class Platform(sprite.Sprite):
 
     def __init__(self, x, y):
@@ -146,7 +171,7 @@ if __name__ == "__main__":
     PLATFORM_WIDTH = 32
     PLATFORM_HEIGHT = 32
     PLATFORM_COLOR = "#FF6262"
-    hero = Player(55, 55)
+    hero = Player(55, 800)
     up = left = right = False
     JUMP_POWER = 11.4
     GRAVITY = 0.45
@@ -154,26 +179,37 @@ if __name__ == "__main__":
     platforms = []
     entities.add(hero)
     level = [
-        "-------------------------",
-        "-                       -",
-        "-                       -",
-        "-                       -",
-        "-            --         -",
-        "-                       -",
-        "--                      -",
-        "-                       -",
-        "-                   --- -",
-        "-                       -",
-        "-                       -",
-        "-      ---              -",
-        "-                       -",
-        "-   -----------         -",
-        "-                       -",
-        "-                -      -",
-        "-                   --  -",
-        "-                       -",
-        "-                       -",
-        "-------------------------"]
+        "--------------------------------------------------------------------",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                       -    -     -",
+        "-                                                               -- -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                                 --",
+        "-                                                                  -",
+        "-                                                    -             -",
+        "-                                                             --   -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                    -             -",
+        "-                                            ---                   -",
+        "-                                -----                             -",
+        "-                   ---     --                                     -",
+        "-             --                                                   -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-          --                                                      -",
+        "-  --                                                              -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "-                                                                  -",
+        "--------------------------------------------------------------------"]
+    total_level_width = len(level[0]) * PLATFORM_WIDTH
+    total_level_height = len(level) * PLATFORM_HEIGHT
+    camera = Camera(camera_configure, total_level_width, total_level_height)
     x = y = 0
     for row in level:
         for col in row:
@@ -209,6 +245,8 @@ if __name__ == "__main__":
         screen.blit(bg, (0, 0))
         timer.tick(60)
         hero.update(left, right, up, platforms)
-        entities.draw(screen)
+        camera.update(hero)
+        for e in entities:
+            screen.blit(e.image, camera.apply(e))
         pygame.display.update()
     pygame.quit()
