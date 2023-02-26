@@ -15,6 +15,7 @@ class Player(sprite.Sprite):
 
     def __init__(self, x, y):
         sprite.Sprite.__init__(self)
+        self.bodyRotation = 1
         self.yvel = 0
         self.onGround = False
         self.xvel = 0
@@ -34,55 +35,58 @@ class Player(sprite.Sprite):
         self.boltAnimLeft = pyganim.PygAnimation(boltAnim2)
         self.boltAnimLeft.scale((22, 32))
         self.boltAnimLeft.play()
-        self.boltAnimStay = pyganim.PygAnimation(ANIMATION_STAY)
-        self.boltAnimStay.scale((22, 32))
-        self.boltAnimStay.play()
-        self.boltAnimStay.blit(self.image, (0, 0))  # По-умолчанию, стоим
+        self.boltAnimRightStay = pyganim.PygAnimation(ANIMATION_RIGHT_STAY)
+        self.boltAnimRightStay.scale((22, 32))
+        self.boltAnimRightStay.play()
+        self.boltAnimRightStay.blit(self.image, (0, 0))
+        self.boltAnimLeftStay = pyganim.PygAnimation(ANIMATION_LEFT_STAY)
+        self.boltAnimLeftStay.scale((22, 32))
+        self.boltAnimLeftStay.play()
+        self.boltAnimLeftStay.blit(self.image, (0, 0))
         self.boltAnimJumpLeft = pyganim.PygAnimation(ANIMATION_JUMP_LEFT)
         self.boltAnimJumpLeft.scale((22, 32))
         self.boltAnimJumpLeft.play()
         self.boltAnimJumpRight = pyganim.PygAnimation(ANIMATION_JUMP_RIGHT)
         self.boltAnimJumpRight.scale((22, 32))
         self.boltAnimJumpRight.play()
-        self.boltAnimJump = pyganim.PygAnimation(ANIMATION_JUMP)
-        self.boltAnimJump.scale((22, 32))
-        self.boltAnimJump.play()
 
     def update(self, left, right, up, platforms):
-        if up:
-            if self.onGround:
-                self.yvel = -JUMP_POWER
-            self.image.fill(Color(COLOR))
-            self.boltAnimJump.blit(self.image, (0, 0))
-
-        if left:
-            self.xvel = -MOVE_SPEED
-            self.image.fill(Color(COLOR))
-            if up:
-                self.boltAnimJumpLeft.blit(self.image, (0, 0))
-            else:
-                self.boltAnimLeft.blit(self.image, (0, 0))
-
-        if right:
-            self.xvel = MOVE_SPEED
-            self.image.fill(Color(COLOR))
-            if up:
-                self.boltAnimJumpRight.blit(self.image, (0, 0))
-            else:
-                self.boltAnimRight.blit(self.image, (0, 0))
-
-        if not (left or right):
-            self.xvel = 0
-        if not up and not (left or right):
-            self.image.fill(Color(COLOR))
-            self.boltAnimStay.blit(self.image, (0, 0))
-        if not self.onGround:
-            self.yvel += GRAVITY
-        self.onGround = False
         self.rect.y += self.yvel
         self.collide(0, self.yvel, platforms)
         self.rect.x += self.xvel
         self.collide(self.xvel, 0, platforms)
+        if up:
+            if self.onGround:
+                self.yvel = -JUMP_POWER
+            if self.bodyRotation:
+                self.image.fill(Color(COLOR))
+                self.boltAnimJumpRight.blit(self.image, (0, 0))
+            else:
+                self.image.fill(Color(COLOR))
+                self.boltAnimJumpLeft.blit(self.image, (0, 0))
+        if left:
+            self.xvel = -MOVE_SPEED
+            self.image.fill(Color(COLOR))
+            self.boltAnimLeft.blit(self.image, (0, 0))
+            self.bodyRotation = 0
+
+        if right:
+            self.xvel = MOVE_SPEED
+            self.image.fill(Color(COLOR))
+            self.boltAnimRight.blit(self.image, (0, 0))
+            self.bodyRotation = 1
+        if not (left or right):
+            self.xvel = 0
+        if not (left or right) and self.onGround:
+            if self.bodyRotation:
+                self.image.fill(Color(COLOR))
+                self.boltAnimRightStay.blit(self.image, (0, 0))
+            else:
+                self.image.fill(Color(COLOR))
+                self.boltAnimLeftStay.blit(self.image, (0, 0))
+        if not self.onGround:
+            self.yvel += GRAVITY
+        self.onGround = False
 
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
@@ -103,11 +107,13 @@ class Player(sprite.Sprite):
                     self.rect.top = p.rect.bottom  # то не движется вверх
                     self.yvel = 0  # и энергия прыжка пропадает
 
+
 if __name__ == "__main__":
+    BODY_ROTATION = 0
     image1 = image.load("other\grass2.jpg")
     boltAnim2 = []
     boltAnim1 = []
-    ANIMATION_DELAY = 100
+    ANIMATION_DELAY = 45
     ANIMATION_RIGHT = ['other/r0.png',
                        'other/r1.png',
                        'other/r2.png',
@@ -127,7 +133,8 @@ if __name__ == "__main__":
     ANIMATION_JUMP_LEFT = [('other/lj0.png', 1)]
     ANIMATION_JUMP_RIGHT = [('other/rj0.png', 1)]
     ANIMATION_JUMP = [('other/rj0.png', 1)]
-    ANIMATION_STAY = [('other/i0.png', 1)]
+    ANIMATION_RIGHT_STAY = [('other/ir0.png', 1)]
+    ANIMATION_LEFT_STAY = [('other/il0.png', 1)]
     timer = pygame.time.Clock()
     MOVE_SPEED = 5.5
     WIDTH = 22
@@ -141,7 +148,7 @@ if __name__ == "__main__":
     PLATFORM_COLOR = "#FF6262"
     hero = Player(55, 55)
     up = left = right = False
-    JUMP_POWER = 11.3
+    JUMP_POWER = 11.4
     GRAVITY = 0.45
     entities = pygame.sprite.Group()
     platforms = []
