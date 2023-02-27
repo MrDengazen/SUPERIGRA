@@ -20,10 +20,10 @@ def camera_configure(camera, target_rect):
     _, _, w, h = camera
     l, t = -l + width / 2, -t + height / 2
 
-    l = min(0, l)  # Не движемся дальше левой границы
-    l = max(-(camera.width - width), l)  # Не движемся дальше правой границы
-    t = max(-(camera.height - height), t)  # Не движемся дальше нижней границы
-    t = min(0, t)  # Не движемся дальше верхней границы
+    l = min(0, l)
+    l = max(-(camera.width - width), l)
+    t = max(-(camera.height - height), t)
+    t = min(0, t)
 
     return Rect(l, t, w, h)
 
@@ -32,7 +32,7 @@ class Platform(sprite.Sprite):
 
     def __init__(self, x, y):
         sprite.Sprite.__init__(self)
-        self.image = pygame.transform.scale(image1, (PLATFORM_WIDTH, PLATFORM_HEIGHT))
+        self.image = pygame.transform.scale(image.load("other\grass2.jpg"), (PLATFORM_WIDTH, PLATFORM_HEIGHT))
         self.rect = Rect(x, y, PLATFORM_WIDTH, PLATFORM_HEIGHT)
 
 
@@ -40,6 +40,7 @@ class Player(sprite.Sprite):
 
     def __init__(self, x, y):
         sprite.Sprite.__init__(self)
+        self.winner = False
         self.bodyRotation = 1
         self.yvel = 0
         self.onGround = False
@@ -115,30 +116,67 @@ class Player(sprite.Sprite):
 
     def collide(self, xvel, yvel, platforms):
         for p in platforms:
-            if sprite.collide_rect(self, p):  # если есть пересечение платформы с игроком
+            if sprite.collide_rect(self, p):
+                if not isinstance(p, Gem) and xvel > 0:
+                    self.rect.right = p.rect.left
 
-                if xvel > 0:  # если движется вправо
-                    self.rect.right = p.rect.left  # то не движется вправо
+                if not isinstance(p, Gem) and xvel < 0:
+                    self.rect.left = p.rect.right
 
-                if xvel < 0:  # если движется влево
-                    self.rect.left = p.rect.right  # то не движется влево
+                if not isinstance(p, Gem) and yvel > 0:
+                    self.rect.bottom = p.rect.top
+                    self.onGround = True
+                    self.yvel = 0
+                if not isinstance(p, Gem) and yvel < 0:
+                    self.rect.top = p.rect.bottom
+                    self.yvel = 0
 
-                if yvel > 0:  # если падает вниз
-                    self.rect.bottom = p.rect.top  # то не падает вниз
-                    self.onGround = True  # и становится на что-то твердое
-                    self.yvel = 0  # и энергия падения пропадает
+                if isinstance(p, BlockDie):
+                    self.die()
 
-                if yvel < 0:  # если движется вверх
-                    self.rect.top = p.rect.bottom  # то не движется вверх
-                    self.yvel = 0  # и энергия прыжка пропадает
+                if isinstance(p, Gem):
+                    self.winner = True
+
+    def die(self):
+        time.wait(500)
+        self.teleporting(self.startX, self.startY)
+
+    def teleporting(self, goX, goY):
+        self.rect.x = goX
+        self.rect.y = goY
+
+
+class BlockDie(Platform):
+    def __init__(self, x, y):
+        Platform.__init__(self, x, y)
+        self.image = pygame.transform.scale(image.load("other/d0.png"), (PLATFORM_WIDTH, PLATFORM_HEIGHT))
+
+
+class Gem(Platform):
+    def __init__(self, x, y):
+        Platform.__init__(self, x, y)
+        self.image = pygame.transform.scale(image.load("other\gem-1.png"), (PLATFORM_WIDTH, PLATFORM_HEIGHT))
+        boltAnim = []
+        for anim in ANIMATION_GEM:
+            boltAnim.append(("other/" + anim, 100))
+        self.boltAnim = pyganim.PygAnimation(boltAnim)
+        self.boltAnim.scale((PLATFORM_WIDTH, PLATFORM_HEIGHT))
+        self.boltAnim.play()
+
+    def update(self):
+        self.boltAnim.blit(self.image, (0, 0))
 
 
 if __name__ == "__main__":
     BODY_ROTATION = 0
-    image1 = image.load("other\grass2.jpg")
     boltAnim2 = []
     boltAnim1 = []
     ANIMATION_DELAY = 45
+    ANIMATION_GEM = ['gem-1.png',
+                     'gem-2.png',
+                     'gem-3.png',
+                     'gem-4.png',
+                     'gem-5.png']
     ANIMATION_RIGHT = ['other/r0.png',
                        'other/r1.png',
                        'other/r2.png',
@@ -171,42 +209,38 @@ if __name__ == "__main__":
     PLATFORM_WIDTH = 32
     PLATFORM_HEIGHT = 32
     PLATFORM_COLOR = "#FF6262"
-    hero = Player(55, 800)
     up = left = right = False
     JUMP_POWER = 11.4
     GRAVITY = 0.45
     entities = pygame.sprite.Group()
     platforms = []
-    entities.add(hero)
     level = [
-        "--------------------------------------------------------------------",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                       -    -     -",
-        "-                                                               -- -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                                 --",
-        "-                                                                  -",
-        "-                                                    -             -",
-        "-                                                             --   -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                    -             -",
-        "-                                            ---                   -",
-        "-                                -----                             -",
-        "-                   ---     --                                     -",
-        "-             --                                                   -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-          --                                                      -",
-        "-  --                                                              -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "-                                                                  -",
-        "--------------------------------------------------------------------"]
+        "----------------------------------",
+        "-                        G       -",
+        "-                       --       -",
+        "-        *          -  -         -",
+        "-                                -",
+        "-            --                  -",
+        "--                               -",
+        "-                                -",
+        "-                   ----     --- -",
+        "-                                -",
+        "--                               -",
+        "-            *                   -",
+        "-                           ---- -",
+        "-                                -",
+        "-                                -",
+        "-  *   ---                  *    -",
+        "-                                -",
+        "-   -------         ----         -",
+        "-                                -",
+        "-                         -      -",
+        "-                            --  -",
+        "-           ***                  -",
+        "-                                -",
+        "----------------------------------"]
+    hero = Player(55, (len(level) - 3) * PLATFORM_HEIGHT)
+    entities.add(hero)
     total_level_width = len(level[0]) * PLATFORM_WIDTH
     total_level_height = len(level) * PLATFORM_HEIGHT
     camera = Camera(camera_configure, total_level_width, total_level_height)
@@ -217,6 +251,14 @@ if __name__ == "__main__":
                 pf = Platform(x, y)
                 entities.add(pf)
                 platforms.append(pf)
+            if col == "*":
+                bd = BlockDie(x, y)
+                entities.add(bd)
+                platforms.append(bd)
+            if col == "G":
+                g = Gem(x, y)
+                entities.add(g)
+                platforms.append(g)
             x += PLATFORM_WIDTH
         y += PLATFORM_HEIGHT
         x = 0
@@ -247,6 +289,8 @@ if __name__ == "__main__":
         hero.update(left, right, up, platforms)
         camera.update(hero)
         for e in entities:
+            if isinstance(e, Gem):
+                e.update()
             screen.blit(e.image, camera.apply(e))
         pygame.display.update()
     pygame.quit()
