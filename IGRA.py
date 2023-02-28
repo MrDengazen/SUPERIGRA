@@ -266,8 +266,8 @@ if __name__ == "__main__":
     moveSpeed = 5.5
     heroWidth = 22
     heroHeight = 32
-    platformWigth = 32
-    platformHeight = 32
+    platformWigth = 32.001
+    platformHeight = 32.001
     heroColor = "#888888"
     windowWidth = 800
     windowHeight = 640
