@@ -1,3 +1,5 @@
+import sys
+
 import pygame
 from pygame import *
 import pyganim
@@ -167,7 +169,71 @@ class Gem(Platform):
         self.boltAnim.blit(self.image, (0, 0))
 
 
+def level_load(name):
+    filename = "levels/" + name
+    with open(filename, 'r') as mapFile:
+        level_map = [line.rstrip("\n") for line in mapFile]
+        return level_map
+
+
+def level_read(lvl):
+    x = y = 0
+    for row in lvl:
+        for col in row:
+            if col == "-":
+                pf = Platform(x, y)
+                entities.add(pf)
+                platforms.append(pf)
+            if col == "*":
+                bd = BlockDie(x, y)
+                entities.add(bd)
+                platforms.append(bd)
+            if col == "G":
+                g = Gem(x, y)
+                entities.add(g)
+                platforms.append(g)
+            x += platformWigth
+        y += platformHeight
+        x = 0
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    intro_text = ["КОТИК", "",
+                  "Правила игры:",
+                  "Нужно собрать кристалл",
+                  "При его сборе ты отправляешься на следующий уровень"]
+
+    fon = pygame.transform.scale(image.load("other/scr.jpg"), (800, 640))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return
+        pygame.display.flip()
+        timer.tick(60)
+
+
 if __name__ == "__main__":
+    levelCount = 0
     boltAnim2 = []
     boltAnim1 = []
     animationDelay = 45
@@ -211,61 +277,35 @@ if __name__ == "__main__":
     gravity = 0.45
     entities = pygame.sprite.Group()
     platforms = []
-    level = [
-        "----------------------------------",
-        "-                        G       -",
-        "-                       --       -",
-        "-        *          -  -         -",
-        "-                                -",
-        "-            --                  -",
-        "--                               -",
-        "-                                -",
-        "-                   ----     --- -",
-        "-                                -",
-        "--                               -",
-        "-            *                   -",
-        "-                           ---- -",
-        "-                                -",
-        "-                                -",
-        "-  *   ---                  *    -",
-        "-                                -",
-        "-   -------         ----         -",
-        "-                                -",
-        "-                         -      -",
-        "-                            --  -",
-        "-           ***                  -",
-        "-                                -",
-        "----------------------------------"]
+    pygame.init()
+    screen = pygame.display.set_mode(display)
+    start_screen()
+    level = level_load("level0.txt")
+    level_read(level)
     hero = Player(55, (len(level) - 3) * platformHeight)
     entities.add(hero)
     total_level_width = len(level[0]) * platformWigth
     total_level_height = len(level) * platformHeight
     camera = Camera(camera_configure, total_level_width, total_level_height)
-    x = y = 0
-    for row in level:
-        for col in row:
-            if col == "-":
-                pf = Platform(x, y)
-                entities.add(pf)
-                platforms.append(pf)
-            if col == "*":
-                bd = BlockDie(x, y)
-                entities.add(bd)
-                platforms.append(bd)
-            if col == "G":
-                g = Gem(x, y)
-                entities.add(g)
-                platforms.append(g)
-            x += platformWigth
-        y += platformHeight
-        x = 0
-    pygame.init()
-    screen = pygame.display.set_mode(display)
     pygame.display.set_caption("game")
     bg = Surface((windowWidth, windowWidth))
     bg.fill(Color((180, 233, 255)))
     running = True
     while running:
+        if hero.winner == 1:
+            levelCount += 1
+            if levelCount == 13:
+                running = False
+                break
+            entities.empty()
+            platforms = []
+            level = level_load("level" + str(levelCount) + ".txt")
+            level_read(level)
+            hero = Player(55, (len(level) - 3) * platformHeight)
+            entities.add(hero)
+            total_level_width = len(level[0]) * platformWigth
+            total_level_height = len(level) * platformHeight
+            camera = Camera(camera_configure, total_level_width, total_level_height)
         for e in pygame.event.get():
             if e.type == KEYDOWN and e.key == K_LEFT:
                 left = True
